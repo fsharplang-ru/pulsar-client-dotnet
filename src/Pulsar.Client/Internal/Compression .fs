@@ -13,6 +13,11 @@ type internal CompressionCodec =
 
 module internal CompressionCodec =
 
+    let zlibStream bytes stream =
+           use zlib = new ZOutputStream(stream)
+           zlib.Write(bytes, 0, bytes.Length)
+           zlib.finish()
+
     let private zlib (bytes : byte[]) (createZLibStream : Stream -> ZOutputStream) =
         use ms = new MemoryStream()
         use zlib = createZLibStream ms

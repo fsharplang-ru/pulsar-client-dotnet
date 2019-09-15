@@ -226,10 +226,12 @@ type ProducerImpl private (producerConfig: ProducerConfiguration, clientConfig: 
                             messageWriter.Write(message.Data)
 
                         let batchData = messageStream.ToArray()
-                        let encodedBatchData = compressionCodec.Encode batchData
+                        let payloadF stream =
+                            CompressionCodec.zlibStream batchData stream
+
                         let metadata = createMessageMetadata batchData (Some batchSize)
                         let sequenceId = %metadata.SequenceId
-                        let payload = Commands.newSend producerId sequenceId batchSize metadata encodedBatchData
+                        let payload = Commands.newSend producerId sequenceId batchSize metadata payloadF
                         let agentMessage = SendMessage {
                                 SequenceId = sequenceId
                                 Payload = payload
@@ -251,9 +253,13 @@ type ProducerImpl private (producerConfig: ProducerConfiguration, clientConfig: 
 
                     Log.Logger.LogDebug("{0} BeginSendMessage", prefix)
                     let metadata = createMessageMetadata message None
+
+                    let payloadF stream =
+                        CompressionCodec.zlibStream message stream
+
                     let encodedMessages = compressionCodec.Encode message
                     let sequenceId = %metadata.SequenceId
-                    let payload = Commands.newSend producerId sequenceId 1 metadata encodedMessages
+                    let payload = Commands.newSend producerId sequenceId 1 metadata payloadF
                     let tcs = TaskCompletionSource(TaskContinuationOptions.RunContinuationsAsynchronously)
                     this.Mb.Post(SendMessage { SequenceId = sequenceId; Payload = payload; Tcs = tcs; CreatedAt = DateTime.Now })
                     channel.Reply(tcs)
