@@ -5,6 +5,7 @@ open Pulsar.Client.Internal
 open Expecto
 open Expecto.Flip
 open System.Text
+open System.IO
 
 [<Tests>]
 let tests =
@@ -35,22 +36,42 @@ let tests =
         let decoded = encodedBytes |> codec.Decode uncompressedSize |> getString
         decoded |> Expect.equal "" hello
 
+    let testEncodeToStream compressionType expectedBytes =
+        let codec = compressionType |> createCodec
+        use ms = new MemoryStream()
+        hello |> getBytes |> codec.EncodeToStream (ms :> Stream)
+        ms.Seek(0L, SeekOrigin.Begin) |> ignore
+        let encoded = ms.ToArray()
+        Expect.isTrue "" (encoded = expectedBytes)
+
+    let testDecodeToStream compressionType encodedBytes =
+        let codec = compressionType |> createCodec
+        use ms = new MemoryStream()
+        encodedBytes |> codec.DecodeToStream (ms :> Stream)
+        ms.Seek(0L, SeekOrigin.Begin) |> ignore
+        let decoded = ms.ToArray()
+        decoded |> getString |> Expect.equal "" hello
+
     testList "CompressionCodec" [
 
         test "None encoding returns same data" {
             helloNone |> testEncode CompressionType.None
+            helloNone |> testEncodeToStream CompressionType.None
         }
 
         test "None decoding returns same data" {
             helloNone |> testDecode CompressionType.None
+            helloNone |> testDecodeToStream CompressionType.None
         }
 
         test "Codec should make ZLib encoding" {
             helloZLib |> testEncode CompressionType.ZLib
+            helloZLib |> testEncodeToStream CompressionType.ZLib
         }
 
         test "Codec should make ZLib decoding" {
             helloZLib |> testDecode CompressionType.ZLib
+            helloZLib |> testDecodeToStream CompressionType.ZLib
         }
 
         test "Codec should make LZ4 encoding" {

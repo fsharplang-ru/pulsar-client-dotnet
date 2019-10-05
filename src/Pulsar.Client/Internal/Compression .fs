@@ -9,9 +9,16 @@ open ZstdNet
 
 type internal CompressionCodec =
     { Encode: byte[] -> byte[]
-      Decode: int -> byte[] -> byte[] }
+      EncodeToStream: Stream -> byte[]-> unit
+      Decode: int -> byte[] -> byte[]
+      DecodeToStream: Stream -> byte[]-> unit }
 
 module internal CompressionCodec =
+
+    let encodeToStreamNone (stream : Stream) (bytes : byte[]) =
+        stream.Write(bytes, 0, bytes.Length) |> ignore
+
+    let decodeToStreamNone  = encodeToStreamNone
 
     let private zlib (bytes : byte[]) (createZLibStream : Stream -> ZOutputStream) (capacity : int) =
         use ms = new MemoryStream(capacity)
@@ -24,9 +31,19 @@ module internal CompressionCodec =
         let createZLibStream ms = new ZOutputStream(ms, zlibConst.Z_DEFAULT_COMPRESSION)
         createZLibStream |> zlib bytes <| 0
 
+    let private encodeZLibToStream stream bytes =
+        let zlib = new ZOutputStream(stream, zlibConst.Z_DEFAULT_COMPRESSION)
+        zlib.Write(bytes, 0, bytes.Length)
+        zlib.finish()
+
     let private decodeZLib (uncompressedSize : int) (bytes : byte[]) =
         let createZLibStream ms = new ZOutputStream(ms)
         createZLibStream |> zlib bytes <| uncompressedSize
+
+    let private decodeZLibToStream stream bytes =
+        let zlib = new ZOutputStream(stream)
+        zlib.Write(bytes, 0, bytes.Length)
+        zlib.finish()
 
     let private encodeLZ4 (bytes : byte[]) =
         let target = Array.zeroCreate<byte>(LZ4Codec.MaximumOutputSize(bytes.Length))
@@ -55,9 +72,9 @@ module internal CompressionCodec =
         zstd.Unwrap(bytes, uncompressedSize)
 
     let create = function
-        | CompressionType.ZLib -> { Encode = encodeZLib; Decode = decodeZLib }
-        | CompressionType.LZ4 -> { Encode = encodeLZ4; Decode = decodeLZ4 }
-        | CompressionType.Snappy -> { Encode = encodeSnappy; Decode = decodeSnappy }
-        | CompressionType.ZStd -> { Encode = encodeZStd; Decode = decodeZStd }
-        | CompressionType.None -> { Encode = id; Decode = fun a b -> b }
+        | CompressionType.ZLib -> { Encode = encodeZLib; EncodeToStream = encodeZLibToStream; Decode = decodeZLib; DecodeToStream = decodeZLibToStream }
+        | CompressionType.LZ4 -> { Encode = encodeLZ4; EncodeToStream = (fun a b -> ()); Decode = decodeLZ4; DecodeToStream = fun a b -> () }
+        | CompressionType.Snappy -> { Encode = encodeSnappy; EncodeToStream = (fun a b -> ()); Decode = decodeSnappy; DecodeToStream = fun a b -> () }
+        | CompressionType.ZStd -> { Encode = encodeZStd; EncodeToStream = (fun a b -> ()); Decode = decodeZStd; DecodeToStream = fun a b -> () }
+        | CompressionType.None -> { Encode = id; EncodeToStream = encodeToStreamNone; Decode = (fun a b -> b); DecodeToStream = decodeToStreamNone }
         | _ as unknown -> raise(NotSupportedException <| sprintf "Compression codec '%A' not supported." unknown)
