@@ -40,7 +40,6 @@ let tests =
         let codec = compressionType |> createCodec
         use ms = new MemoryStream()
         hello |> getBytes |> codec.EncodeToStream (ms :> Stream)
-        ms.Seek(0L, SeekOrigin.Begin) |> ignore
         let encoded = ms.ToArray()
         Expect.isTrue "" (encoded = expectedBytes)
 
@@ -48,7 +47,6 @@ let tests =
         let codec = compressionType |> createCodec
         use ms = new MemoryStream()
         encodedBytes |> codec.DecodeToStream (ms :> Stream)
-        ms.Seek(0L, SeekOrigin.Begin) |> ignore
         let decoded = ms.ToArray()
         decoded |> getString |> Expect.equal "" hello
 
@@ -84,6 +82,7 @@ let tests =
 
         test "Codec should make Snappy encoding" {
             helloSnappy |> testEncode CompressionType.Snappy
+            helloSnappy |> testEncodeToStream CompressionType.Snappy
         }
 
         test "Codec should make Snappy decoding" {

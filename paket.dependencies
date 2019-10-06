@@ -8,12 +8,12 @@ nuget FSharp.Core !~> 4.5.0
 nuget Microsoft.Extensions.Logging.Abstractions
 nuget Microsoft.IO.RecyclableMemoryStream
 nuget Pipelines.Sockets.Unofficial
+nuget Snappy.NET
 nuget TaskBuilder.fs
 nuget protobuf-net
 nuget NETStandard.Library
 nuget zlib.net-mutliplatform
 nuget K4os.Compression.LZ4
-nuget Snappy.Standard
 nuget ZstdNet
 
 group Tests

@@ -8,6 +8,6 @@ protobuf-net
 NETStandard.Library
 zlib.net-mutliplatform
 K4os.Compression.LZ4
-Snappy.Standard
 ZstdNet
 FSharp.Control.AsyncSeq
+Snappy.NET

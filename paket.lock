@@ -2,6 +2,7 @@ STORAGE: NONE
 RESTRICTION: == netstandard2.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
+    Crc32C.NET (1.0.5)
     FSharp.Control.AsyncSeq (2.0.22)
       FSharp.Core (>= 4.3.2)
     FSharp.Core (4.5.4)
@@ -25,8 +26,8 @@ NUGET
       System.Reflection.TypeExtensions (>= 4.4)
       System.ServiceModel.Primitives (>= 4.5.3)
       System.Xml.XmlSerializer (>= 4.3)
-    Snappy.Standard (0.2)
-      NETStandard.Library (>= 1.6)
+    Snappy.NET (1.1.1.8)
+      Crc32C.NET (>= 1.0.5)
     System.Buffers (4.5)
     System.Collections (4.3)
       Microsoft.NETCore.Platforms (>= 1.1)

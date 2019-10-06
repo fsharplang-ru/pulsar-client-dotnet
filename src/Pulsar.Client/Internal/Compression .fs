@@ -6,6 +6,7 @@ open ComponentAce.Compression.Libs.zlib
 open K4os.Compression.LZ4
 open Snappy
 open ZstdNet
+open System.IO.Compression
 
 type internal CompressionCodec =
     { Encode: byte[] -> byte[]
@@ -58,6 +59,11 @@ module internal CompressionCodec =
     let private encodeSnappy (bytes : byte[]) =
         bytes |> SnappyCodec.Compress
 
+    let private encodeSnappyToStream stream bytes =
+        let snappy = new SnappyStream(stream, CompressionMode.Compress, true)
+        snappy.Write(bytes, 0, bytes.Length)
+        //snappy.Flush |> ignore
+
     let private decodeSnappy (uncompressedSize : int) (bytes : byte[]) =
         let target = Array.zeroCreate<byte>(uncompressedSize)
         SnappyCodec.Uncompress(bytes, 0, bytes.Length, target, 0) |> ignore
@@ -74,7 +80,7 @@ module internal CompressionCodec =
     let create = function
         | CompressionType.ZLib -> { Encode = encodeZLib; EncodeToStream = encodeZLibToStream; Decode = decodeZLib; DecodeToStream = decodeZLibToStream }
         | CompressionType.LZ4 -> { Encode = encodeLZ4; EncodeToStream = (fun a b -> ()); Decode = decodeLZ4; DecodeToStream = fun a b -> () }
-        | CompressionType.Snappy -> { Encode = encodeSnappy; EncodeToStream = (fun a b -> ()); Decode = decodeSnappy; DecodeToStream = fun a b -> () }
+        | CompressionType.Snappy -> { Encode = encodeSnappy; EncodeToStream = encodeSnappyToStream; Decode = decodeSnappy; DecodeToStream = fun a b -> () }
         | CompressionType.ZStd -> { Encode = encodeZStd; EncodeToStream = (fun a b -> ()); Decode = decodeZStd; DecodeToStream = fun a b -> () }
         | CompressionType.None -> { Encode = id; EncodeToStream = encodeToStreamNone; Decode = (fun a b -> b); DecodeToStream = decodeToStreamNone }
         | _ as unknown -> raise(NotSupportedException <| sprintf "Compression codec '%A' not supported." unknown)
