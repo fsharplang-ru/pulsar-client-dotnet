@@ -35,7 +35,7 @@ let internal serializeSimpleCommand(command : BaseCommand) =
         Log.Logger.LogDebug("Sending message of type {0}", command.``type``)
         stream.CopyToAsync(output)
 
-let internal serializePayloadCommand (command : BaseCommand) (metadata: MessageMetadata) (payload: byte[]) =
+let internal serializePayloadCommand (command : BaseCommand) (metadata: MessageMetadata) (payloadF: Stream -> unit) =
     fun (output: Stream) ->
         use stream = MemoryStreamManager.GetStream()
 
@@ -62,7 +62,7 @@ let internal serializePayloadCommand (command : BaseCommand) (metadata: MessageM
         let totalMetadataSize = stream2Size - stream1Size - 6
 
         // write payload
-        stream.Write(payload, 0, payload.Length)
+        payloadF stream
 
         let frameSize = int stream.Length
         let totalSize = frameSize - 4
@@ -94,10 +94,10 @@ let newPartitionMetadataRequest(topicName : CompleteTopicName) (requestId : Requ
     let command = BaseCommand(``type`` = CommandType.PartitionedMetadata, partitionMetadata = request)
     serializeSimpleCommand command
 
-let newSend (producerId : ProducerId) (sequenceId : SequenceId) (numMessages : int) (msgMetadata : MessageMetadata) (payload: byte[]) : Payload =
+let newSend (producerId : ProducerId) (sequenceId : SequenceId) (numMessages : int) (msgMetadata : MessageMetadata) (payloadF: Stream -> unit) : Payload =
     let request = CommandSend(ProducerId = %producerId, SequenceId = %sequenceId, NumMessages = numMessages)
     let command = BaseCommand(``type`` = CommandType.Send, Send = request)
-    serializePayloadCommand command msgMetadata payload
+    serializePayloadCommand command msgMetadata payloadF
 
 let newAck (consumerId : ConsumerId) (messageId: MessageId) (ackType : AckType) : Payload =
     let request = CommandAck(ConsumerId = %consumerId, ack_type = ackType.ToCommandAckType())

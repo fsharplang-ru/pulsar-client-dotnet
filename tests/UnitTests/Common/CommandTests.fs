@@ -106,9 +106,10 @@ module CommandsTests =
                 let numMessages =  1
                 let metadata = MessageMetadata(ProducerName = "TestMe")
                 let payload = [| 1uy; 17uy; |]
+                let payloadF (stream : Stream) = stream.Write(payload, 0, payload.Length)
 
                 let (bytes, totalSize, commandSize, command, magicNumber, crc32, medataSize, resultMetadata, resultPayload) =
-                    serializeDeserializePayloadCommand (newSend producerId sequenceId numMessages metadata payload)
+                    serializeDeserializePayloadCommand (newSend producerId sequenceId numMessages metadata payloadF)
 
                 let crcArrayStart = 8 + commandSize + 6
                 let crcArray = bytes.AsSpan(crcArrayStart, 4 + medataSize + resultPayload.Length).ToArray()
